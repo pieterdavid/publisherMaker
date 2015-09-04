@@ -1,0 +1,2 @@
+/store/user/namin/test/ntuple6.root
+/store/user/namin/test/ntuple7.root
