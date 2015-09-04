@@ -1,18 +1,12 @@
 from WMCore.Configuration import Configuration
+
+name = 'publishtestC'
+filelist="filelist.txt"
+
 config = Configuration()
 config.section_('General')
 config.General.transferOutputs = True
-
-import os
-index = 1
-baseName = 'publishtestC'
-filelist="filelist.txt"
-# if it finds crab_UserScriptTest1/, it will use crab_UserScriptTest2/ automatically!
-while os.path.isdir("crab_%s%s" % (baseName, index)):
-    index += 1
-config.General.requestName = baseName + str(index)
-
-print config.General.requestName
+config.General.requestName = name
 
 config.section_('JobType')
 config.JobType.pluginName = 'Analysis'
@@ -24,7 +18,7 @@ config.JobType.scriptExe = 'main.sh'
 config.section_('Data')
 config.Data.inputDataset = "/MinimumBias/Run2015B-PromptReco-v1/MINIAOD"
 config.Data.publication = True
-config.Data.publishDataName = 'publishtest4'
+config.Data.publishDataName = name
 njobs = len(open(filelist,"r").readlines())
 config.Data.totalUnits = njobs
 config.Data.unitsPerJob = 1
