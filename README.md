@@ -1,6 +1,20 @@
 ## Intro
 Are you tired of not being able to publish files not created by CRAB using CRAB? Of course you are.
 
+## NEW!!!
+Old, but working instructions are below, but if you want to quickly publish files to an *arbitrary* dataset,
+then do this:
+0. Check out this repository
+1. ```
+cmsrel CMSSW_7_4_1_patch1; cd CMSSW_7_4_1_patch1/src
+cmsenv; source /cvmfs/cms.cern.ch/crab3/crab.sh
+. /cvmfs/cms.cern.ch/crab3/crab-env-bootstrap.sh >& /dev/null
+```
+2. Inside of the `v2` folder, edit `config.py` with the appropriate parameters (denoted by "change this")
+3. Do `python InsertFiles.py`
+4. Check that the dataset was published properly by pasting the name into DAS.
+
+
 ## Setup
 0. Check out this repository
 1. `cmsrel CMSSW_7_4_1_patch1; cd CMSSW_7_4_1_patch1/src` or use your favorite release
