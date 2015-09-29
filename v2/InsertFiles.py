@@ -190,4 +190,4 @@ if files_in_block:
     writeApi.insertBulkBlock(blockDict)
 
 
-print "/%s/%s/%s/" % (dataset_info['primary_ds'], dataset_info['processed_ds'], dataset_info['tier'])
+print "/%s/%s/%s" % (dataset_info['primary_ds'], dataset_info['processed_ds'], dataset_info['tier'])
