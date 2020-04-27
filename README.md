@@ -8,7 +8,7 @@ then do this:
 2. `cmsrel CMSSW_7_4_1_patch1; cd CMSSW_7_4_1_patch1/src`
 3. `cmsenv; source /cvmfs/cms.cern.ch/crab3/crab.sh`
 4. `. /cvmfs/cms.cern.ch/crab3/crab-env-bootstrap.sh >& /dev/null`
-5. Inside of the `v2` folder, edit `config.py` with the appropriate parameters (denoted by "change this")
+5. Inside of the `v2` folder, edit `config.py` and `InsertFiles.py` with the appropriate parameters (denoted by "change this" or similar)
 6. Do `python InsertFiles.py`
 7. Check that the dataset was published properly by pasting the name into DAS.
 
