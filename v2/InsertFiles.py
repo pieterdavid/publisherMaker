@@ -23,35 +23,37 @@ voms-proxy-init -voms cms
 import pprint
 from dbs.apis.dbsClient import DbsApi
 import uuid
-import os
+import os,sys
 from config import *
-
+import time
 
 def createEmptyBlock(ds_info, origin_site_name):
 
-    acquisition_era_config = {'acquisition_era_name':'CRAB', 'start_date':0}
+    acquisition_era_config = {'acquisition_era_name':'CRAB', 'start_date':2020} # ~~~~~~~~~~~~~~~ # change this as needed
     processing_era_config = {'processing_version': 1, 'description': 'test_injection'}
     primds_config = {'primary_ds_type': 'mc', 'primary_ds_name': ds_info['primary_ds']}
-
+    ds_info['tier'] = 'USER' # ~~~~~~~~~~~~~~~ # change this as needed
     dataset = "/%s/%s/%s" % (ds_info['primary_ds'],ds_info['processed_ds'],ds_info['tier'])
 
     dataset_config = {
-        'physics_group_name': ds_info['group'],
+        'physics_group_name': 'CRAB3', #ds_info['group'], ~~~~~~~~~~~~~~~ # change this as needed
         'dataset_access_type': 'VALID',
-        'data_tier_name': ds_info['tier'],
+        'data_tier_name': 'USER', #ds_info['tier'], ~~~~~~~~~~~~~~~ # change this as needed
         'processed_ds_name':ds_info['processed_ds'],
         'dataset': dataset }
 
     block_name = "%s#%s" % (dataset, str(uuid.uuid4()))
+    print("block_name is "+block_name)
     block_config = {'block_name': block_name, \
                         'origin_site_name': origin_site_name,\
-                        'open_for_writing': 0}
+                        'open_for_writing': 1}
 
     dataset_conf_list = [{'app_name': ds_info['application'],
                         'global_tag': 'dummytag',
                         'output_module_label': 'out',
                         'pset_hash': 'dummyhash',
-                        'release_version': ds_info['app_version']}]
+                        'release_version': ds_info['app_version']
+                        }]
 
     blockDict = { \
          'files': [],
@@ -64,6 +66,7 @@ def createEmptyBlock(ds_info, origin_site_name):
          'file_parent_list':[],
          'file_conf_list':[],
     }
+    
     return blockDict
 
 
@@ -105,7 +108,7 @@ writeApi  = DbsApi(url=phy3WriteUrl)
 # INFORMATION TO BE PUT IN DBS3
 
 # almost free text here, but beware WMCore/Lexicon.py
-origin_site_name = 'cmseos.cern.ch'
+origin_site_name = 'T2_DE_DESY' #cmseos.cern.ch' ~~~~~~~~~~~~~~~ # change this as needed
 
 # in following line: no / at beginning but / at the end
 assert(directory_path[0]  != '/')
@@ -116,7 +119,7 @@ assert(directory_path[-1] == '/')
 
 
 # PREPARE COMMON ADDITIONAL INFORMATION FOR FILES
-common_file_type  = 'LHE'
+common_file_type  = 'EDM' #LHE' ~~~~~~~~~~~~~~~ # change this as needed
 common_dummy_lumi = [{'lumi_section_num': 1, 'run_num': 1}]
 
 
@@ -133,19 +136,22 @@ for i in range(n_files):
         filename = parts[0]+"_"+parts[1]+".root"
 
     filesize = 1000
-    try:
-        hadoopfile = "/hadoop/cms/" + filename
-        filesize = int(os.path.getsize(common_lfn_prefix+directory_path+filename))
-        print hadoopfile, filesize
-    except:
-        pass
+    #try:
+        #hadoopfile = "/hadoop/cms/" + filename 
+    #~~~~~~~~~~~~~~ Change hard coded /pnfs...tier2 path as needed ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    filesize = int(os.path.getsize("/pnfs/desy.de/cms/tier2"+common_lfn_prefix+directory_path+filename))
+    print(filename)
+    print(filesize) # hadoopfile, filesize
+    #sys.exit("Stopping test run.")
+    #except:
+        #pass
 
     aUID = uuid.uuid4().hex[0:9]
     aFile ={'name':"%s" % (filename),\
-                'event_count':1,\
+                'event_count':10000,\ # ~~~~~~~~~~~~~~~ # change this as needed
                 'file_size':filesize, \
                 'check_sum': 'NOTSET',\
-                'adler32':'deadbeef'}
+                'adler32':'NOTSET'}
     inputFiles.append(aFile)
 
 
@@ -174,20 +180,20 @@ for file in inputFiles:
     files_in_block += 1
     if files_in_block == max_files_in_block:
         blockDict = addFilesToBlock(blockDict, files)
-        # print "insert block in DBS3: %s" % writeApi.url
-        # pprint.pprint(blockDict)
+        print "insert block in DBS3: %s" % writeApi.url
+        pprint.pprint(blockDict)
         writeApi.insertBulkBlock(blockDict)
         files_in_block = 0
-    
+
     # end loop on input Files
 
 # any leftovers ?
 
 if files_in_block:
     blockDict = addFilesToBlock(blockDict, files)
-    # print "insert block in DBS3: %s" % writeApi.url
-    # pprint.pprint(blockDict)
+    print "insert block in DBS3: %s" % writeApi.url
+    pprint.pprint(blockDict)
     writeApi.insertBulkBlock(blockDict)
-
+    
 
 print "/%s/%s/%s" % (dataset_info['primary_ds'], dataset_info['processed_ds'], dataset_info['tier'])
