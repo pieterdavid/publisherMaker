@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 import glob
 import os, os.path
 import subprocess
+import time
 
 def publishFiles(dbsWrite,
         fileDictList,
@@ -91,8 +92,12 @@ def publishFiles(dbsWrite,
         if dry_run:
             logger.info("Dry-run, not inserting after all")
         else:
-            res = dbsWrite.insertBulkBlock(blockConfig)
-            logger.info(pformat(res))
+            from RestClient.ErrorHandling.RestClientExceptions import HTTPError
+            try:
+                res = dbsWrite.insertBulkBlock(blockConfig)
+                logger.info(pformat(res))
+            except HTTPError as ex:
+                logger.error("Caught HTTP error {0!r}\n {1}\n{2}".format(ex, ex.message, ex.args))
 
 def getAdler32(pfn):
     for i in range(5):
@@ -101,7 +106,7 @@ def getAdler32(pfn):
             logger.debug("adler32 for {0}: {1}".format(pfn, ad32))
             return pfn, ad32
         except subprocess.CalledProcessError as ex:
-            pass
+            time.sleep(20)
     logger.error("No adler32 for {0} after 5 tries".format(pfn))
     return pfn, "NOTSET"
 
@@ -112,7 +117,7 @@ def getChecksum(pfn):
             logger.debug("checksum for {0}: {1}".format(pfn, checksum))
             return pfn, checksum
         except subprocess.CalledProcessError as ex:
-            pass
+            time.sleep(20)
     logger.error("No checksum for {0} after 5 tries".format(pfn))
     return pfn, "NOTSET"
 
@@ -123,7 +128,7 @@ def getMD5(pfn):
             logger.debug("MD5 for {0}: {1}".format(pfn, checksum))
             return pfn, checksum
         except subprocess.CalledProcessError as ex:
-            pass
+            time.sleep(20)
     logger.error("No md5 for {0} after 5 tries".format(pfn))
     return pfn, "NOTSET"
 
@@ -225,18 +230,25 @@ def cli_publish_from_dirs(args=None):
 
     storageroot = args.storeroot.rstrip(os.sep)
 
-    filenames = []
+    lfnpfns = []
     for path in args.path:
-        pFiles = glob.glob(os.path.join(os.path.abspath(path), args.pattern))
-        if len(pFiles) == 0:
-            logger.warning("No files matching {0!r} found in directory {1}".format(args.pattern, path))
+        if os.path.isdir(path):
+            filenames = glob.glob(os.path.join(os.path.abspath(path), args.pattern))
+            if len(filenames) == 0:
+                logger.warning("No files matching {0!r} found in directory {1}".format(args.pattern, path))
+            else:
+                logger.debug("Found {0:d} files matching {1!r} in directory {2}".format(len(filenames), args.pattern, path))
+            if not all(fn.startswith(storageroot) for fn in filenames):
+                raise RuntimeError("Not all files start with {0}, cannot convert to LFNs (offending files are {1})".format(storageroot, ", ".join(fn for fn in filenames if not fn.startswith(storageroot))))
+            lfnpfns += [ (fn[len(storageroot):], fn) for fn in filenames ]
+        elif os.path.isfile(path):
+            with open(path) as filelist:
+                i_lfnpfn = [ ln.strip().split() for ln in filelist if ln.strip() ]
+                lfnpfns += i_lfnpfn
         else:
-            logger.debug("Found {0:d} files matching {1!r} in directory {2}".format(len(pFiles), args.pattern, path))
-        filenames += pFiles
-    logger.info("Found {0:d} files in total".format(len(filenames)))
-    if not all(fn.startswith(storageroot) for fn in filenames):
-        raise RuntimeError("Not all files start with {0}, cannot convert to LFNs (offending files are {1})".format(storageroot, ", ".join(fn for fn in filenames if not fn.startswith(storageroot))))
-    lfnpfns = [ (fn[len(storageroot):], fn) for fn in filenames ]
+            logger.warning("Path {0} is neither a directory nor a file, skipping".format(path))
+
+    logger.info("Found {0:d} files in total".format(len(lfnpfns)))
     logger.debug("Full list of LFNs and local paths:")
     logger.debug(pformat(lfnpfns))
 
